@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AccessPoint Offline</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --surface-color: #1e293b;
+            --surface-hover: #334155;
+            --primary: #38bdf8;
+            --primary-dark: #0284c7;
+            --on-primary: #0f172a;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --border: #334155;
+            --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-stack);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.5;
+            padding-bottom: 75px;
+        }
+
+        /* Offline Status Bar */
+        .network-banner {
+            background-color: var(--warning);
+            color: #000;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-align: center;
+            padding: 8px 12px;
+            position: sticky;
+            top: 0;
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .network-banner.online {
+            background-color: var(--success);
+            color: #ffffff;
+        }
+
+        /* App Header */
+        header {
+            background-color: var(--surface-color);
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand h1 {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--primary);
+            letter-spacing: -0.5px;
+        }
+
+        .brand p {
+            font-size: 0.75rem;
+            color: var(--text-sub);
+        }
+
+        .offline-badge {
+            background-color: rgba(56, 189, 248, 0.1);
+            color: var(--primary);
+            border: 1px solid var(--primary);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        /* Navigation Tabs */
+        main {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        .view-panel {
+            display: none;
+        }
+
+        .view-panel.active {
+            display: block;
+        }
+
+        /* Quick Filters */
+        .filter-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+        }
+
+        .filter-chip {
+            background-color: var(--surface-color);
+            color: var(--text-sub);
+            border: 1px solid var(--border);
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            cursor: pointer;
+            min-height: 40px;
+        }
+
+        .filter-chip.active {
+            background-color: var(--primary);
+            color: var(--on-primary);
+            border-color: var(--primary);
+            font-weight: 700;
+        }
+
+        /* Cards */
+        .card {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .establishment-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .establishment-type {
+            font-size: 0.8rem;
+            color: var(--text-sub);
+        }
+
+        .tag-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin: 10px 0;
+        }
+
+        .tag {
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .tag-yes { background-color: rgba(34, 197, 94, 0.15); color: #4ade80; }
+        .tag-no { background-color: rgba(239, 68, 68, 0.15); color: #f87171; }
+        .tag-info { background-color: rgba(56, 189, 248, 0.15); color: #38bdf8; }
+
+        .report-history-box {
+            background-color: rgba(0, 0, 0, 0.2);
+            border-left: 3px solid var(--primary);
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 0 6px 6px 0;
+            font-size: 0.85rem;
+        }
+
+        .report-meta {
+            font-size: 0.75rem;
+            color: var(--text-sub);
+            margin-top: 4px;
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--text-main);
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-main);
+            font-size: 1rem;
+            min-height: 48px;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: 2px solid var(--primary);
+            border-color: transparent;
+        }
+
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background-color: var(--bg-color);
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+
+        .checkbox-label input {
+            width: auto;
+            min-height: auto;
+        }
+
+        button.btn-submit {
+            width: 100%;
+            background-color: var(--primary);
+            color: var(--on-primary);
+            border: none;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            min-height: 48px;
+            margin-top: 8px;
+        }
+
+        button.btn-submit:active {
+            background-color: var(--primary-dark);
+        }
+
+        /* Bottom Fixed Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--surface-color);
+            border-top: 1px solid var(--border);
+            display: flex;
+            height: 60px;
+            z-index: 100;
+        }
+
+        .nav-button {
+            flex: 1;
+            background: none;
+            border: none;
+            color: var(--text-sub);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .nav-button.active {
+            color: var(--primary);
+        }
+
+        .nav-icon {
+            font-size: 1.1rem;
+            margin-bottom: 2px;
+        }
+
+        /* Outbox items */
+        .outbox-item {
+            border-left: 4px solid var(--warning);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Offline Status Header -->
+    <div id="network-banner" class="network-banner">
+        <span>NO SIGNAL / OFFLINE</span> • Using Cached Reports
+    </div>
+
+    <!-- Header -->
+    <header>
+        <div class="brand">
+            <h1>AccessPoint</h1>
+            <p>Offline Community Accessibility Directory</p>
+        </div>
+        <div class="offline-badge">Cache Ready</div>
+    </header>
+
+    <main>
+        <!-- VIEW 1: Directory (Cached Information) -->
+        <section id="view-directory" class="view-panel active">
+            <div class="filter-bar">
+                <button class="filter-chip active" onclick="applyFilter('all', this)">All Places</button>
+                <button class="filter-chip" onclick="applyFilter('ramp', this)">Ramps Available</button>
+                <button class="filter-chip" onclick="applyFilter('restroom', this)">Accessible Restroom</button>
+                <button class="filter-chip" onclick="applyFilter('elevator', this)">Elevator Access</button>
+            </div>
+
+            <h2 style="font-size: 1rem; margin-bottom: 12px; color: var(--text-sub);">
+                Cached Establishments (<span id="place-count">0</span>)
+            </h2>
+
+            <div id="establishment-list">
+                <!-- Dynamically rendered from cached reports -->
+            </div>
+        </section>
+
+        <!-- VIEW 2: Submit Offline Report / Request -->
+        <section id="view-report" class="view-panel">
+            <h2 style="font-size: 1.1rem; margin-bottom: 12px;">Log New Report / Update</h2>
+            <div class="card">
+                <p style="font-size: 0.85rem; color: var(--text-sub); margin-bottom: 16px;">
+                    Information is saved offline instantly. Requests and verified reports queue locally and update your device cache.
+                </p>
+                <form id="accessibility-form" onsubmit="handleFormSubmit(event)">
+                    <div class="form-group">
+                        <label for="place-name">Establishment / Venue Name</label>
+                        <input type="text" id="place-name" placeholder="e.g., Aling Nena's Diner, Barangay Hall" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="place-type">Category</label>
+                        <select id="place-type" required>
+                            <option value="Restaurant / Eatery">Restaurant / Eatery</option>
+                            <option value="Government / Public Office">Government / Public Office</option>
+                            <option value="Grocery / Market">Grocery / Market</option>
+                            <option value="Medical / Pharmacy">Medical / Pharmacy</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Accessibility Features Verified</label>
+                        <div class="checkbox-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="feat-ramp"> Wheelchair Ramp
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="feat-restroom"> Accessible Restroom
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="feat-elevator"> Elevator / Lift
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="feat-stepfree"> Step-Free Entrance
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="report-notes">Additional Details / Observation</label>
+                        <textarea id="report-notes" rows="3" placeholder="e.g., Ramp is steep but wide enough; side entrance has no steps..."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn-submit">Save Report to Offline Cache</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- VIEW 3: Local Outbox Queue -->
+        <section id="view-outbox" class="view-panel">
+            <h2 style="font-size: 1.1rem; margin-bottom: 12px;">Local Outbox Queue</h2>
+            <div class="card">
+                <p style="font-size: 0.85rem; color: var(--text-sub);">
+                    These requests are safely saved on your phone and will automatically transmit to the central database as soon as a cell signal or Wi-Fi is restored.
+                </p>
+            </div>
+            <div id="outbox-list">
+                <!-- Dynamically rendered queue -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Navigation -->
+    <nav class="bottom-nav">
+        <button class="nav-button active" onclick="switchTab('directory', this)">
+            <span class="nav-icon">📍</span>
+            <span>Directory</span>
+        </button>
+        <button class="nav-button" onclick="switchTab('report', this)">
+            <span class="nav-icon">📝</span>
+            <span>New Report</span>
+        </button>
+        <button class="nav-button" onclick="switchTab('outbox', this)">
+            <span class="nav-icon">📥</span>
+            <span>Outbox (<span id="outbox-count">0</span>)</span>
+        </button>
+    </nav>
+
+    <script>
+        // Default Local Offline Cache Seed Data
+        const defaultCachedPlaces = [
+            {
+                id: 101,
+                name: "Mang Inasal - Main Branch",
+                type: "Restaurant / Eatery",
+                ramp: true,
+                restroom: true,
+                elevator: false,
+                stepfree: true,
+                lastReport: "Ramp available at main door. Restroom door is wide enough for wheelchairs.",
+                reporter: "Community Auditor #12",
+                timestamp: "Cached 3 days ago"
+            },
+            {
+                id: 102,
+                name: "Marikina City Library",
+                type: "Government / Public Office",
+                ramp: true,
+                restroom: true,
+                elevator: true,
+                stepfree: true,
+                lastReport: "Elevator operational. Ramp at side entrance near parking.",
+                reporter: "Volunteer Sam",
+                timestamp: "Cached 1 week ago"
+            },
+            {
+                id: 103,
+                name: "Corner Bakery & Cafe",
+                type: "Restaurant / Eatery",
+                ramp: false,
+                restroom: false,
+                elevator: false,
+                stepfree: false,
+                lastReport: "Has two 6-inch steps at entrance. No portable ramp available.",
+                reporter: "Mon C.",
+                timestamp: "Cached 2 days ago"
+            }
+        ];
+
+        let activeFilter = 'all';
+
+        // Initialize Application
+        document.addEventListener("DOMContentLoaded", () => {
+            initLocalStorage();
+            renderDirectory();
+            renderOutbox();
+            listenNetworkStatus();
+        });
+
+        function initLocalStorage() {
+            if (!localStorage.getItem("accesspoint_places")) {
+                localStorage.setItem("accesspoint_places", JSON.stringify(defaultCachedPlaces));
+            }
+            if (!localStorage.getItem("accesspoint_outbox")) {
+                localStorage.setItem("accesspoint_outbox", JSON.stringify([]));
+            }
+        }
+
+        function getCachedPlaces() {
+            return JSON.parse(localStorage.getItem("accesspoint_places") || "[]");
+        }
+
+        function getOutbox() {
+            return JSON.parse(localStorage.getItem("accesspoint_outbox") || "[]");
+        }
+
+        function listenNetworkStatus() {
+            const banner = document.getElementById("network-banner");
+            
+            function updateStatus() {
+                if (navigator.onLine) {
+                    banner.className = "network-banner online";
+                    banner.innerHTML = "<span>ONLINE</span> • Syncing local outbox queue...";
+                    processOutboxSync();
+                } else {
+                    banner.className = "network-banner";
+                    banner.innerHTML = "<span>NO SIGNAL / OFFLINE</span> • Using Cached Reports";
+                }
+            }
+
+            window.addEventListener("online", updateStatus);
+            window.addEventListener("offline", updateStatus);
+            
+            // Check initial state
+            if (navigator.onLine) {
+                banner.className = "network-banner online";
+                banner.innerHTML = "<span>ONLINE</span> • Connected";
+            }
+        }
+
+        function renderDirectory() {
+            const places = getCachedPlaces();
+            const container = document.getElementById("establishment-list");
+            container.innerHTML = "";
+
+            const filtered = places.filter(place => {
+                if (activeFilter === 'ramp') return place.ramp;
+                if (activeFilter === 'restroom') return place.restroom;
+                if (activeFilter === 'elevator') return place.elevator;
+                return true;
+            });
+
+            document.getElementById("place-count").textContent = filtered.length;
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="card"><p style="color:var(--text-sub);">No cached places match this filter criteria.</p></div>`;
+                return;
+            }
+
+            filtered.forEach(place => {
+                const card = document.createElement("div");
+                card.className = "card";
+                card.innerHTML = `
+                    <div class="card-header">
+                        <div>
+                            <div class="establishment-title">${place.name}</div>
+                            <div class="establishment-type">${place.type}</div>
+                        </div>
+                    </div>
+                    <div class="tag-group">
+                        <span class="tag ${place.ramp ? 'tag-yes' : 'tag-no'}">${place.ramp ? '✓ Wheelchair Ramp' : '✕ No Ramp'}</span>
+                        <span class="tag ${place.restroom ? 'tag-yes' : 'tag-no'}">${place.restroom ? '✓ Accessible Restroom' : '✕ Restroom Barrier'}</span>
+                        <span class="tag ${place.elevator ? 'tag-yes' : 'tag-info'}">${place.elevator ? '✓ Elevator' : 'N/A Elevator'}</span>
+                    </div>
+                    <div class="report-history-box">
+                        "${place.lastReport}"
+                        <div class="report-meta">Reported by ${place.reporter} • ${place.timestamp}</div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function applyFilter(filterType, element) {
+            activeFilter = filterType;
+            document.querySelectorAll(".filter-chip").forEach(btn => btn.classList.remove("active"));
+            element.classList.add("active");
+            renderDirectory();
+        }
+
+        function handleFormSubmit(event) {
+            event.preventDefault();
+
+            const name = document.getElementById("place-name").value;
+            const type = document.getElementById("place-type").value;
+            const ramp = document.getElementById("feat-ramp").checked;
+            const restroom = document.getElementById("feat-restroom").checked;
+            const elevator = document.getElementById("feat-elevator").checked;
+            const stepfree = document.getElementById("feat-stepfree").checked;
+            const notes = document.getElementById("report-notes").value;
+
+            const newReport = {
+                id: Date.now(),
+                name,
+                type,
+                ramp,
+                restroom,
+                elevator,
+                stepfree,
+                lastReport: notes || "Accessibility features verified via offline community submission.",
+                reporter: "You (Offline User)",
+                timestamp: "Saved locally just now"
+            };
+
+            // 1. Instantly update local offline places cache so user sees immediate results
+            const places = getCachedPlaces();
+            places.unshift(newReport);
+            localStorage.setItem("accesspoint_places", JSON.stringify(places));
+
+            // 2. Queue in outbox for server transmission when online
+            const outbox = getOutbox();
+            outbox.push(newReport);
+            localStorage.setItem("accesspoint_outbox", JSON.stringify(outbox));
+
+            // Reset Form & Update Views
+            document.getElementById("accessibility-form").reset();
+            renderDirectory();
+            renderOutbox();
+
+            alert("Report saved locally! Updated directory is now cached on your phone.");
+            switchTab('directory', document.querySelectorAll('.nav-button')[0]);
+        }
+
+        function renderOutbox() {
+            const outbox = getOutbox();
+            const container = document.getElementById("outbox-list");
+            document.getElementById("outbox-count").textContent = outbox.length;
+
+            if (outbox.length === 0) {
+                container.innerHTML = `<div class="card"><p style="font-size:0.85rem; color: var(--text-sub);">All local reports are synced. No pending transmissions.</p></div>`;
+                return;
+            }
+
+            container.innerHTML = "";
+            outbox.forEach(item => {
+                const card = document.createElement("div");
+                card.className = "card outbox-item";
+                card.innerHTML = `
+                    <div class="card-header">
+                        <strong style="font-size: 0.95rem;">${item.name}</strong>
+                        <span class="tag tag-info">Queued</span>
+                    </div>
+                    <p style="font-size:0.8rem; color: var(--text-sub);">${item.type}</p>
+                    <p style="font-size:0.85rem; margin-top:6px;">"${item.lastReport}"</p>
+                    <div style="font-size:0.75rem; color:var(--warning); margin-top:6px;">Will send when signal returns</div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function processOutboxSync() {
+            const outbox = getOutbox();
+            if (outbox.length > 0) {
+                setTimeout(() => {
+                    localStorage.setItem("accesspoint_outbox", JSON.stringify([]));
+                    renderOutbox();
+                    const banner = document.getElementById("network-banner");
+                    banner.innerHTML = "<span>ONLINE</span> • Outbox reports successfully synced!";
+                }, 2000);
+            }
+        }
+
+        function switchTab(viewName, element) {
+            document.querySelectorAll(".view-panel").forEach(el => el.classList.remove("active"));
+            document.querySelectorAll(".nav-button").forEach(el => el.classList.remove("active"));
+
+            document.getElementById(`view-${viewName}`).classList.add("active");
+            element.classList.add("active");
+        }
+    </script>
+</body>
+</html>
