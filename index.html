@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AccessPoint | Offline Accessibility Directory</title>
+    <title>AccessPoint | Offline Accessibility Directory & Map</title>
+    
+    <!-- Leaflet Open-Source Mapping Library -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <style>
         :root {
             --bg-color: #0f172a;
@@ -45,7 +50,7 @@
             padding: 8px 12px;
             position: sticky;
             top: 0;
-            z-index: 200;
+            z-index: 1000;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -89,7 +94,6 @@
             font-weight: 600;
         }
 
-        /* Navigation Tabs */
         main {
             max-width: 600px;
             margin: 0 auto;
@@ -102,6 +106,28 @@
 
         .view-panel.active {
             display: block;
+        }
+
+        /* Map Container */
+        #map-container {
+            width: 100%;
+            height: 380px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            margin-bottom: 16px;
+            z-index: 1;
+            background: var(--surface-color);
+        }
+
+        .leaflet-popup-content-wrapper {
+            background-color: var(--surface-color);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .leaflet-popup-tip {
+            background-color: var(--surface-color);
         }
 
         /* Quick Filters */
@@ -192,6 +218,19 @@
             margin-top: 4px;
         }
 
+        .btn-action {
+            background-color: transparent;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+            display: inline-block;
+        }
+
         /* Forms */
         .form-group {
             margin-bottom: 16px;
@@ -273,7 +312,7 @@
             border-top: 1px solid var(--border);
             display: flex;
             height: 60px;
-            z-index: 100;
+            z-index: 1000;
         }
 
         .nav-button {
@@ -299,7 +338,6 @@
             margin-bottom: 2px;
         }
 
-        /* Outbox items */
         .outbox-item {
             border-left: 4px solid var(--warning);
         }
@@ -322,8 +360,19 @@
     </header>
 
     <main>
-        <!-- VIEW 1: Directory (Cached Information) -->
-        <section id="view-directory" class="view-panel active">
+        <!-- VIEW 1: Interactive Map -->
+        <section id="view-map" class="view-panel active">
+            <h2 style="font-size: 1rem; margin-bottom: 12px; color: var(--text-sub);">
+                Interactive Accessibility Map
+            </h2>
+            <div id="map-container"></div>
+            <p style="font-size: 0.8rem; color: var(--text-sub);">
+                📍 Tap any marker to view accessibility details and verified reports.
+            </p>
+        </section>
+
+        <!-- VIEW 2: Directory List -->
+        <section id="view-directory" class="view-panel">
             <div class="filter-bar">
                 <button class="filter-chip active" onclick="applyFilter('all', this)">All Places</button>
                 <button class="filter-chip" onclick="applyFilter('ramp', this)">Ramps Available</button>
@@ -340,7 +389,7 @@
             </div>
         </section>
 
-        <!-- VIEW 2: Submit Offline Report / Request -->
+        <!-- VIEW 3: Submit Offline Report -->
         <section id="view-report" class="view-panel">
             <h2 style="font-size: 1.1rem; margin-bottom: 12px;">Log New AccessPoint Report</h2>
             <div class="card">
@@ -361,6 +410,15 @@
                             <option value="Grocery / Market">Grocery / Market</option>
                             <option value="Medical / Pharmacy">Medical / Pharmacy</option>
                         </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Location Coordinates (Optional)</label>
+                        <button type="button" class="btn-action" style="width: 100%; margin-top: 0; margin-bottom: 8px;" onclick="getGPSLocation()">📍 Pin Current GPS Location</button>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="place-lat" placeholder="Latitude" readonly>
+                            <input type="text" id="place-lng" placeholder="Longitude" readonly>
+                        </div>
                     </div>
 
                     <div class="form-group">
@@ -391,7 +449,7 @@
             </div>
         </section>
 
-        <!-- VIEW 3: Local Outbox Queue -->
+        <!-- VIEW 4: Local Outbox Queue -->
         <section id="view-outbox" class="view-panel">
             <h2 style="font-size: 1.1rem; margin-bottom: 12px;">AccessPoint Outbox Queue</h2>
             <div class="card">
@@ -407,7 +465,11 @@
 
     <!-- Navigation -->
     <nav class="bottom-nav">
-        <button class="nav-button active" onclick="switchTab('directory', this)">
+        <button class="nav-button active" onclick="switchTab('map', this)">
+            <span class="nav-icon">🗺️</span>
+            <span>Map</span>
+        </button>
+        <button class="nav-button" onclick="switchTab('directory', this)">
             <span class="nav-icon">📍</span>
             <span>Directory</span>
         </button>
@@ -422,12 +484,14 @@
     </nav>
 
     <script>
-        // Default Local Offline Cache Seed Data
+        // Seed Cached Places with GPS Coordinates (Marikina Area)
         const defaultCachedPlaces = [
             {
                 id: 101,
                 name: "Mang Inasal - Main Branch",
                 type: "Restaurant / Eatery",
+                lat: 14.6322,
+                lng: 121.0965,
                 ramp: true,
                 restroom: true,
                 elevator: false,
@@ -440,6 +504,8 @@
                 id: 102,
                 name: "Marikina City Library",
                 type: "Government / Public Office",
+                lat: 14.6338,
+                lng: 121.0981,
                 ramp: true,
                 restroom: true,
                 elevator: true,
@@ -452,6 +518,8 @@
                 id: 103,
                 name: "Corner Bakery & Cafe",
                 type: "Restaurant / Eatery",
+                lat: 14.6305,
+                lng: 121.0942,
                 ramp: false,
                 restroom: false,
                 elevator: false,
@@ -463,10 +531,12 @@
         ];
 
         let activeFilter = 'all';
+        let map = null;
+        let mapMarkers = [];
 
-        // Initialize Application
         document.addEventListener("DOMContentLoaded", () => {
             initLocalStorage();
+            initMap();
             renderDirectory();
             renderOutbox();
             listenNetworkStatus();
@@ -487,6 +557,78 @@
 
         function getOutbox() {
             return JSON.parse(localStorage.getItem("accesspoint_outbox") || "[]");
+        }
+
+        function initMap() {
+            if (map) return;
+            
+            // Center around Marikina City
+            map = L.map('map-container').setView([14.6322, 121.0965], 15);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
+
+            renderMapMarkers();
+        }
+
+        function renderMapMarkers() {
+            if (!map) return;
+
+            // Clear old markers
+            mapMarkers.forEach(marker => map.removeLayer(marker));
+            mapMarkers = [];
+
+            const places = getCachedPlaces();
+            places.forEach(place => {
+                if (place.lat && place.lng) {
+                    const marker = L.marker([place.lat, place.lng]).addTo(map);
+                    
+                    const popupContent = `
+                        <div style="font-family: var(--font-stack);">
+                            <strong style="font-size:1rem; color:#38bdf8;">${place.name}</strong><br>
+                            <small style="color:#94a3b8;">${place.type}</small><br><br>
+                            <div>${place.ramp ? '✓ Ramp' : '✕ No Ramp'} | ${place.restroom ? '✓ Restroom' : '✕ No Restroom'}</div>
+                            <p style="font-size:0.8rem; margin-top:6px;">"${place.lastReport}"</p>
+                        </div>
+                    `;
+                    marker.bindPopup(popupContent);
+                    mapMarkers.push(marker);
+                }
+            });
+        }
+
+        function focusOnMap(lat, lng) {
+            switchTab('map', document.querySelectorAll('.nav-button')[0]);
+            if (map && lat && lng) {
+                map.setView([lat, lng], 17);
+                mapMarkers.forEach(marker => {
+                    const pos = marker.getLatLng();
+                    if (Math.abs(pos.lat - lat) < 0.0001 && Math.abs(pos.lng - lng) < 0.0001) {
+                        marker.openPopup();
+                    }
+                });
+            }
+        }
+
+        function getGPSLocation() {
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        document.getElementById("place-lat").value = position.coords.latitude.toFixed(4);
+                        document.getElementById("place-lng").value = position.coords.longitude.toFixed(4);
+                        alert("GPS Location pinned successfully!");
+                    },
+                    error => {
+                        alert("Unable to acquire GPS location. Defaulting to estimated area coordinates.");
+                        document.getElementById("place-lat").value = "14.6322";
+                        document.getElementById("place-lng").value = "121.0965";
+                    }
+                );
+            } else {
+                alert("Geolocation is not supported by your browser.");
+            }
         }
 
         function listenNetworkStatus() {
@@ -550,6 +692,7 @@
                         "${place.lastReport}"
                         <div class="report-meta">Reported by ${place.reporter} • ${place.timestamp}</div>
                     </div>
+                    ${place.lat && place.lng ? `<button class="btn-action" onclick="focusOnMap(${place.lat},${place.lng})">🗺️ View on Map</button>` : ''}
                 `;
                 container.appendChild(card);
             });
@@ -567,6 +710,8 @@
 
             const name = document.getElementById("place-name").value;
             const type = document.getElementById("place-type").value;
+            const lat = parseFloat(document.getElementById("place-lat").value) || 14.6322;
+            const lng = parseFloat(document.getElementById("place-lng").value) || 121.0965;
             const ramp = document.getElementById("feat-ramp").checked;
             const restroom = document.getElementById("feat-restroom").checked;
             const elevator = document.getElementById("feat-elevator").checked;
@@ -577,6 +722,8 @@
                 id: Date.now(),
                 name,
                 type,
+                lat,
+                lng,
                 ramp,
                 restroom,
                 elevator,
@@ -597,9 +744,10 @@
             document.getElementById("accessibility-form").reset();
             renderDirectory();
             renderOutbox();
+            renderMapMarkers();
 
-            alert("Report saved locally! Updated directory is now cached in AccessPoint on your phone.");
-            switchTab('directory', document.querySelectorAll('.nav-button')[0]);
+            alert("Report saved locally! Updated directory and map markers are now cached in AccessPoint on your phone.");
+            switchTab('map', document.querySelectorAll('.nav-button')[0]);
         }
 
         function renderOutbox() {
@@ -647,7 +795,14 @@
 
             document.getElementById(`view-${viewName}`).classList.add("active");
             element.classList.add("active");
+
+            if (viewName === 'map' && map) {
+                setTimeout(() => {
+                    map.invalidateSize();
+                }, 200);
+            }
         }
     </script>
 </body>
 </html>
+
