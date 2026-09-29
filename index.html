@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AccessPoint Offline</title>
+    <title>AccessPoint | Offline Accessibility Directory</title>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -309,7 +309,7 @@
 
     <!-- Offline Status Header -->
     <div id="network-banner" class="network-banner">
-        <span>NO SIGNAL / OFFLINE</span> • Using Cached Reports
+        <span>NO SIGNAL / OFFLINE</span> • AccessPoint Cache Active
     </div>
 
     <!-- Header -->
@@ -342,7 +342,7 @@
 
         <!-- VIEW 2: Submit Offline Report / Request -->
         <section id="view-report" class="view-panel">
-            <h2 style="font-size: 1.1rem; margin-bottom: 12px;">Log New Report / Update</h2>
+            <h2 style="font-size: 1.1rem; margin-bottom: 12px;">Log New AccessPoint Report</h2>
             <div class="card">
                 <p style="font-size: 0.85rem; color: var(--text-sub); margin-bottom: 16px;">
                     Information is saved offline instantly. Requests and verified reports queue locally and update your device cache.
@@ -386,14 +386,14 @@
                         <textarea id="report-notes" rows="3" placeholder="e.g., Ramp is steep but wide enough; side entrance has no steps..."></textarea>
                     </div>
 
-                    <button type="submit" class="btn-submit">Save Report to Offline Cache</button>
+                    <button type="submit" class="btn-submit">Save Report to AccessPoint Cache</button>
                 </form>
             </div>
         </section>
 
         <!-- VIEW 3: Local Outbox Queue -->
         <section id="view-outbox" class="view-panel">
-            <h2 style="font-size: 1.1rem; margin-bottom: 12px;">Local Outbox Queue</h2>
+            <h2 style="font-size: 1.1rem; margin-bottom: 12px;">AccessPoint Outbox Queue</h2>
             <div class="card">
                 <p style="font-size: 0.85rem; color: var(--text-sub);">
                     These requests are safely saved on your phone and will automatically transmit to the central database as soon as a cell signal or Wi-Fi is restored.
@@ -433,7 +433,7 @@
                 elevator: false,
                 stepfree: true,
                 lastReport: "Ramp available at main door. Restroom door is wide enough for wheelchairs.",
-                reporter: "Community Auditor #12",
+                reporter: "AccessPoint Auditor #12",
                 timestamp: "Cached 3 days ago"
             },
             {
@@ -495,21 +495,20 @@
             function updateStatus() {
                 if (navigator.onLine) {
                     banner.className = "network-banner online";
-                    banner.innerHTML = "<span>ONLINE</span> • Syncing local outbox queue...";
+                    banner.innerHTML = "<span>ONLINE</span> • Syncing local AccessPoint queue...";
                     processOutboxSync();
                 } else {
                     banner.className = "network-banner";
-                    banner.innerHTML = "<span>NO SIGNAL / OFFLINE</span> • Using Cached Reports";
+                    banner.innerHTML = "<span>NO SIGNAL / OFFLINE</span> • AccessPoint Cache Active";
                 }
             }
 
             window.addEventListener("online", updateStatus);
             window.addEventListener("offline", updateStatus);
             
-            // Check initial state
             if (navigator.onLine) {
                 banner.className = "network-banner online";
-                banner.innerHTML = "<span>ONLINE</span> • Connected";
+                banner.innerHTML = "<span>ONLINE</span> • AccessPoint Connected";
             }
         }
 
@@ -582,27 +581,24 @@
                 restroom,
                 elevator,
                 stepfree,
-                lastReport: notes || "Accessibility features verified via offline community submission.",
+                lastReport: notes || "Accessibility features verified via offline AccessPoint community submission.",
                 reporter: "You (Offline User)",
                 timestamp: "Saved locally just now"
             };
 
-            // 1. Instantly update local offline places cache so user sees immediate results
             const places = getCachedPlaces();
             places.unshift(newReport);
             localStorage.setItem("accesspoint_places", JSON.stringify(places));
 
-            // 2. Queue in outbox for server transmission when online
             const outbox = getOutbox();
             outbox.push(newReport);
             localStorage.setItem("accesspoint_outbox", JSON.stringify(outbox));
 
-            // Reset Form & Update Views
             document.getElementById("accessibility-form").reset();
             renderDirectory();
             renderOutbox();
 
-            alert("Report saved locally! Updated directory is now cached on your phone.");
+            alert("Report saved locally! Updated directory is now cached in AccessPoint on your phone.");
             switchTab('directory', document.querySelectorAll('.nav-button')[0]);
         }
 
@@ -612,7 +608,7 @@
             document.getElementById("outbox-count").textContent = outbox.length;
 
             if (outbox.length === 0) {
-                container.innerHTML = `<div class="card"><p style="font-size:0.85rem; color: var(--text-sub);">All local reports are synced. No pending transmissions.</p></div>`;
+                container.innerHTML = `<div class="card"><p style="font-size:0.85rem; color: var(--text-sub);">All AccessPoint reports are synced. No pending transmissions.</p></div>`;
                 return;
             }
 
@@ -640,7 +636,7 @@
                     localStorage.setItem("accesspoint_outbox", JSON.stringify([]));
                     renderOutbox();
                     const banner = document.getElementById("network-banner");
-                    banner.innerHTML = "<span>ONLINE</span> • Outbox reports successfully synced!";
+                    banner.innerHTML = "<span>ONLINE</span> • AccessPoint outbox reports successfully synced!";
                 }, 2000);
             }
         }
